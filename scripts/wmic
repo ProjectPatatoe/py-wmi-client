@@ -10,8 +10,7 @@
 import argparse
 import re
 import sys
-import ConfigParser
-import StringIO
+import configparser
 
 from natsort import natsorted, ns
 from impacket.dcerpc.v5.dtypes import NULL
@@ -81,13 +80,13 @@ class WmiClient(object):
         while True:
             try:
                 classObject = queryObject.Next(0xffffffff, 1)[0]
-                print 'CLASS: %s' % classObject.getClassName()
+                print('CLASS: %s' % classObject.getClassName())
                 record = classObject.getProperties()
                 keys = []
                 for name in record:
                     keys.append(name.strip())
                 keys = natsorted(keys, alg=ns.IGNORECASE)
-                print delimiter.join(keys)
+                print(delimiter.join(keys))
                 tmp = []
                 for key in keys:
                     if key == 'MUILanguages':
@@ -105,8 +104,8 @@ class WmiClient(object):
                     else:
                         tmp.append('%s' % self.format_value(record[key]['value'], record[key]['qualifiers']['CIMTYPE'],
                                                             record[key]['type']))
-                print delimiter.join(tmp)
-            except Exception, e:
+                print(delimiter.join(tmp))
+            except Exception as e:
                 if e.get_error_code() != wmi.WBEMSTATUS.WBEM_S_FALSE:
                     raise
                 else:
@@ -147,7 +146,7 @@ class WmiClient(object):
 
             wmiService.RemRelease()
             conn.disconnect()
-        except Exception, e:
+        except Exception as e:
             if classObject is not None:
                 classObject.RemRelease()
             if wmiLogin is not None:
@@ -156,7 +155,7 @@ class WmiClient(object):
                 wmiService.RemRelease()
             if conn is not None:
                 conn.disconnect()
-            raise Exception("Could not connect to %s: %s" % (self.host, e.message))
+            raise Exception("Could not connect to %s: %s" % (self.host, str(e)))
 
 
 if __name__ == '__main__':
@@ -177,16 +176,16 @@ if __name__ == '__main__':
     }
     if options.authfile is not None:
         authfile = '[root]\n' + open(options.authfile, 'r').read()
-        config = ConfigParser.SafeConfigParser()
-        config.readfp(StringIO.StringIO(authfile))
-        auth['domain'] = config.get('root', 'domain')
+        config = configparser.ConfigParser()
+        config.read_string(authfile)
+        auth['domain'] = config.get('root', 'domain', fallback='WORKGROUP')
         auth['username'] = config.get('root', 'username')
         auth['password'] = config.get('root', 'password')
     elif options.user is not None:
         auth['domain'], auth['username'], auth['password'] = re.compile(
             '(?:(?:([^/\\\\%]*)[/\\\\])?([^%]*))(?:%(.*))?').match(options.user).groups('')
     else:
-        print "Missing user information"
+        print("Missing user information")
         sys.exit(1)
 
     if auth['domain'] == '':
